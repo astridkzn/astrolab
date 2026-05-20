@@ -64,23 +64,31 @@ button { font-family: var(--font-b); cursor: pointer; }
 
 
 /* ─── Login ──────────────────────────────────────────────────────────────────── */
-#screen-login {
+.login-bg {
+    position: absolute;
+    inset: 0;
     background-image: url('assets/images/login-bg.png');
     background-size: cover;
     background-position: center top;
+    opacity: 0;
+    animation: bgReveal 2.5s 0.4s ease forwards;
 }
 
-#screen-login::before {
+.login-bg::after {
     content: '';
     position: absolute;
     inset: 0;
     background: linear-gradient(
         to bottom,
-        rgba(8, 8, 8, 0.35) 0%,
-        rgba(8, 8, 8, 0.6) 50%,
-        rgba(8, 8, 8, 0.88) 100%
+        rgba(8, 8, 8, 0.15) 0%,
+        rgba(8, 8, 8, 0.5) 55%,
+        rgba(8, 8, 8, 0.9) 100%
     );
-    pointer-events: none;
+}
+
+@keyframes bgReveal {
+    from { opacity: 0; }
+    to   { opacity: 1; }
 }
 
 .login-wrap {
