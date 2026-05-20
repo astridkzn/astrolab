@@ -46,6 +46,16 @@ const App = {
         document.getElementById('screen-login').classList.add('hidden');
         document.getElementById('screen-app').classList.remove('hidden');
         this.go(role === 'admin' ? 'montage' : 'home');
+        this._prefetchAll(role);
+    },
+
+    _prefetchAll(role) {
+        const tabs = role === 'admin'
+            ? ['montage_tasks', 'inventaire', 'lineup', 'repas', 'shifts_cuisine',
+               'shifts_bar', 'plan_dodo', 'covoit_voitures', 'covoit_passagers', 'covoit_train', 'todo']
+            : ['lineup', 'repas', 'shifts_cuisine', 'shifts_bar',
+               'covoit_voitures', 'covoit_passagers', 'covoit_train', 'plan_dodo'];
+        tabs.forEach(tab => Api.get(tab).catch(() => {}));
     },
 
 

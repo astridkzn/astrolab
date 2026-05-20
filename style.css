@@ -64,6 +64,25 @@ button { font-family: var(--font-b); cursor: pointer; }
 
 
 /* ─── Login ──────────────────────────────────────────────────────────────────── */
+#screen-login {
+    background-image: url('assets/images/login-bg.jpg');
+    background-size: cover;
+    background-position: center top;
+}
+
+#screen-login::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        to bottom,
+        rgba(8, 8, 8, 0.35) 0%,
+        rgba(8, 8, 8, 0.6) 50%,
+        rgba(8, 8, 8, 0.88) 100%
+    );
+    pointer-events: none;
+}
+
 .login-wrap {
     flex: 1;
     display: flex;
@@ -73,6 +92,8 @@ button { font-family: var(--font-b); cursor: pointer; }
     gap: 52px;
     padding: 40px 32px;
     padding-top: calc(var(--safe-t) + 40px);
+    position: relative;
+    z-index: 1;
 }
 
 .login-logo { text-align: center; }
