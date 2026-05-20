@@ -65,7 +65,7 @@ button { font-family: var(--font-b); cursor: pointer; }
 
 /* ─── Login ──────────────────────────────────────────────────────────────────── */
 #screen-login {
-    background-image: url('assets/images/login-bg.jpg');
+    background-image: url('assets/images/login-bg.png');
     background-size: cover;
     background-position: center top;
 }
