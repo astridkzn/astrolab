@@ -74,17 +74,6 @@ button { font-family: var(--font-b); cursor: pointer; }
     animation: bgReveal 2.5s 0.4s ease forwards;
 }
 
-.login-bg::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(
-        to bottom,
-        rgba(8, 8, 8, 0.15) 0%,
-        rgba(8, 8, 8, 0.5) 55%,
-        rgba(8, 8, 8, 0.9) 100%
-    );
-}
 
 @keyframes bgReveal {
     from { opacity: 0; }
