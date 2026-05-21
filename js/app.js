@@ -54,7 +54,7 @@ const App = {
             ? ['montage_tasks', 'inventaire', 'lineup', 'repas', 'shifts_cuisine',
                'shifts_bar', 'plan_dodo', 'covoit_voitures', 'covoit_passagers', 'covoit_train', 'todo']
             : ['lineup', 'repas', 'shifts_cuisine', 'shifts_bar',
-               'covoit_voitures', 'covoit_passagers', 'covoit_train', 'plan_dodo'];
+               'covoit_voitures', 'covoit_passagers', 'covoit_train', 'plan_dodo', 'deguisements_images'];
         tabs.forEach(tab => Api.get(tab).catch(() => {}));
     },
 
@@ -83,9 +83,8 @@ const App = {
         });
 
         const labels = {
-            home: 'Astrolab', programme: 'Programme', shifts: 'Shifts',
-            covoit: 'Covoiturage', infos: 'Infos', plandodo: 'Plan dodo',
-            deguisements: 'Déguisements',
+            home: 'Accueil', programme: 'Programme', catering: 'Catering',
+            logistique: 'Logistique', dodo: 'Plan dodo',
             montage: 'Montage', inventaire: 'Inventaire', prog: 'Programme',
             equipes: 'Équipes', todo: 'Todo',
         };
@@ -114,14 +113,12 @@ const App = {
 
     async _renderFestivalier(view, main) {
         switch (view) {
-            case 'home':         main.innerHTML = Tpl.home();         break;
-            case 'programme':    await this._renderProgramme(main);   break;
-            case 'shifts':       await this._renderShifts(main);      break;
-            case 'covoit':       await this._renderCovoit(main);      break;
-            case 'plandodo':     await this._renderDodo(main);        break;
-            case 'infos':        await this._renderInfos(main);       break;
-            case 'deguisements': main.innerHTML = Tpl.deguisements(); break;
-            default:             main.innerHTML = '<div class="empty-state">À venir</div>';
+            case 'home':        await this._renderHome(main);        break;
+            case 'programme':   await this._renderProgramme(main);   break;
+            case 'catering':    await this._renderCatering(main);    break;
+            case 'logistique':  await this._renderLogistique(main);  break;
+            case 'dodo':        await this._renderDodo(main);        break;
+            default:            main.innerHTML = '<div class="empty-state">À venir</div>';
         }
     },
 
@@ -140,20 +137,26 @@ const App = {
 
     // ── Festivalier views ─────────────────────────────────────────────────────
 
+    async _renderHome(main) {
+        const degImages = await Api.get('deguisements_images').catch(() => []);
+        main.innerHTML = Tpl.home(degImages);
+        this._bindAccordions(main);
+    },
+
     async _renderProgramme(main) {
         const lineup = await Api.get('lineup');
         this._lineup = lineup;
 
-        const days  = ['Vendredi', 'Samedi', 'Dimanche'];
-        const byDay = { Vendredi: [], Samedi: [], Dimanche: [] };
+        const days  = ['Vendredi', 'Samedi'];
+        const byDay = { Vendredi: [], Samedi: [] };
         lineup.forEach((set, idx) => {
             set._idx = idx;
             if (byDay[set.jour] !== undefined) byDay[set.jour].push(set);
         });
 
-        main.innerHTML = Tpl.programme(days, byDay);
+        main.innerHTML = Tpl.programme(days, byDay, true);
         this._bindTabs(main);
-        main.querySelectorAll('.set-card.clickable').forEach(card => {
+        main.querySelectorAll('.set-card').forEach(card => {
             card.addEventListener('click', () => {
                 const set = this._lineup[parseInt(card.dataset.idx)];
                 if (set) this._openModal(set);
@@ -161,30 +164,29 @@ const App = {
         });
     },
 
-    async _renderInfos(main) {
-        const repas = await Api.get('repas');
-        main.innerHTML = Tpl.infos(repas);
-        main.querySelectorAll('.accordion-header').forEach(h => {
-            h.addEventListener('click', () => h.closest('.accordion').classList.toggle('open'));
-        });
+    async _renderCatering(main) {
+        const [repas, cuisine, bar] = await Promise.all([
+            Api.get('repas'), Api.get('shifts_cuisine'), Api.get('shifts_bar'),
+        ]);
+        main.innerHTML = Tpl.catering(repas, cuisine, bar);
+        this._bindTabs(main);
+        this._bindAccordions(main);
     },
 
-    async _renderShifts(main) {
-        const [cuisine, bar] = await Promise.all([Api.get('shifts_cuisine'), Api.get('shifts_bar')]);
-        main.innerHTML = Tpl.shifts(cuisine, bar);
-    },
-
-    async _renderCovoit(main) {
+    async _renderLogistique(main) {
         const [voitures, passagers, train] = await Promise.all([
             Api.get('covoit_voitures'), Api.get('covoit_passagers'), Api.get('covoit_train'),
         ]);
-        main.innerHTML = Tpl.covoit(voitures, passagers, train);
+        main.innerHTML = Tpl.logistique(voitures, passagers, train);
+        this._bindTabs(main);
+        this._bindAccordions(main);
     },
 
     async _renderDodo(main) {
         const rows = await Api.get('plan_dodo');
         main.innerHTML = Tpl.dodo(rows);
         this._bindTabs(main);
+        this._bindAccordions(main);
     },
 
 
@@ -224,7 +226,7 @@ const App = {
 
         main.innerHTML = Tpl.programme(days, byDay) + AdminTpl.repasTable(repas);
         this._bindTabs(main);
-        main.querySelectorAll('.set-card.clickable').forEach(card => {
+        main.querySelectorAll('.set-card').forEach(card => {
             card.addEventListener('click', () => {
                 const set = this._lineup[parseInt(card.dataset.idx)];
                 if (set) this._openModal(set);
@@ -266,6 +268,12 @@ const App = {
                 const panel = container.querySelector(`.day-panel[data-panel="${tab.dataset.panel}"]`);
                 if (panel) panel.classList.remove('hidden');
             });
+        });
+    },
+
+    _bindAccordions(container) {
+        container.querySelectorAll('.accordion-header').forEach(h => {
+            h.addEventListener('click', () => h.closest('.accordion').classList.toggle('open'));
         });
     },
 
@@ -348,12 +356,10 @@ const App = {
         confirmBtn.addEventListener('click', async () => {
             const tache     = input.value.trim();
             const categorie = select.value;
-            console.log('[todo] submit', { tache, categorie });
             if (!tache) { input.focus(); return; }
 
             confirmBtn.disabled = true;
-            const result = await Api.write({ action: 'append_todo', tache, categorie });
-            console.log('[todo] write result', result);
+            await Api.write({ action: 'append_todo', tache, categorie });
             await this._renderAdminTodo(main);
         });
 
@@ -363,10 +369,10 @@ const App = {
     },
 
 
-    // ── Modal DJ ──────────────────────────────────────────────────────────────
+    // ── Modal ─────────────────────────────────────────────────────────────────
 
     _openModal(set) {
-        document.getElementById('modal-body').innerHTML = Tpl.djModal(set);
+        document.getElementById('modal-body').innerHTML = Tpl.itemModal(set);
         document.getElementById('dj-modal').classList.remove('hidden');
     },
 
@@ -385,44 +391,77 @@ const Tpl = {
             <span>Chargement…</span>
         </div>`,
 
-    home: () => `
-        <div class="home-grid">
-            <div class="home-card wide" data-nav="programme">
-                <div class="home-card-icon">${icons.music}</div>
-                <div>
-                    <div class="home-card-label">Programme</div>
-                    <div class="home-card-sub">Lineup & horaires</div>
-                </div>
-            </div>
-            <div class="home-card" data-nav="shifts">
-                <div class="home-card-icon">${icons.clock}</div>
-                <div class="home-card-label">Shifts</div>
-                <div class="home-card-sub">Cuisine & bar</div>
-            </div>
-            <div class="home-card" data-nav="plandodo">
-                <div class="home-card-icon">${icons.home_}</div>
-                <div class="home-card-label">Plan dodo</div>
-                <div class="home-card-sub">Chambres</div>
-            </div>
-            <div class="home-card" data-nav="covoit">
-                <div class="home-card-icon">${icons.car}</div>
-                <div class="home-card-label">Covoit</div>
-                <div class="home-card-sub">Voitures & train</div>
-            </div>
-            <div class="home-card" data-nav="deguisements">
-                <div class="home-card-icon">${icons.star}</div>
-                <div class="home-card-label">Déguisements</div>
-                <div class="home-card-sub">Inspiration</div>
-            </div>
-            <div class="home-card" data-nav="infos">
-                <div class="home-card-icon">${icons.info}</div>
-                <div class="home-card-label">Infos</div>
-                <div class="home-card-sub">Pratique</div>
-            </div>
-        </div>`,
+    home: (degImages) => {
+        const cards = [
+            { nav: 'programme',  label: 'Programme',  imgKey: 'accueil_programme_image'  },
+            { nav: 'catering',   label: 'Catering',   imgKey: 'accueil_catering_image'   },
+            { nav: 'logistique', label: 'Logistique', imgKey: 'accueil_logistique_image' },
+            { nav: 'dodo',       label: 'Plan dodo',  imgKey: 'accueil_dodo_image'       },
+        ];
 
-    programme: (days, byDay) => `
-        <div class="day-tabs">
+        const cardsHtml = cards.map(c => {
+            const imgUrl = App.t(c.imgKey, '');
+            return `
+                <div class="home-card" data-nav="${c.nav}">
+                    <div class="home-card-header">
+                        <span class="home-card-label">${c.label}</span>
+                        <span class="home-card-arrow">${icons.chevron}</span>
+                    </div>
+                    <div class="home-card-photo">
+                        ${imgUrl
+                            ? `<img src="${imgUrl}" alt="${c.label}"
+                                   onerror="this.closest('.home-card-photo').classList.add('empty')">`
+                            : ''
+                        }
+                    </div>
+                </div>`;
+        }).join('');
+
+        const aSavoir = App.t('infos_a_savoir', '');
+        const gtnHtml = aSavoir ? `
+            <div class="gtn-wrap">
+                <div class="accordion">
+                    <div class="accordion-header">À savoir ${icons.chevronDown}</div>
+                    <div class="accordion-body">
+                        ${aSavoir.split('\n').map(l => `<p>${l}</p>`).join('')}
+                    </div>
+                </div>
+            </div>` : '';
+
+        const degIntro = App.t('deguisements_intro', '');
+        const driveUrl = App.t('deguisements_drive_url',
+            'https://drive.google.com/drive/folders/1TQeQmUi_dqUGA__mUK0F-CUq2ApxHiGW?usp=sharing'
+        );
+        const degGallery = degImages.length
+            ? `<div class="deg-gallery">
+                   ${degImages.map(img =>
+                       `<img src="${img.image_url}" alt="" onerror="this.style.display='none'">`
+                   ).join('')}
+               </div>`
+            : '<div class="empty-state" style="padding:20px 0">Images à venir</div>';
+
+        const degHtml = `
+            <div class="gtn-wrap">
+                <div class="accordion">
+                    <div class="accordion-header">Déguisements ${icons.chevronDown}</div>
+                    <div class="accordion-body">
+                        ${degIntro ? `<p class="deg-intro-text">${degIntro}</p>` : ''}
+                        ${degGallery}
+                        <a class="deg-drive-link" href="${driveUrl}" target="_blank" rel="noopener">
+                            ${icons.photo}&nbsp; Photos Drive →
+                        </a>
+                    </div>
+                </div>
+            </div>`;
+
+        return `
+            <div class="home-grid">${cardsHtml}</div>
+            ${gtnHtml}
+            ${degHtml}`;
+    },
+
+    programme: (days, byDay, centered = false) => `
+        <div class="day-tabs${centered ? ' day-tabs--centered' : ''}">
             ${days.map((d, i) => `
                 <button class="day-tab ${i === 0 ? 'active' : ''}" data-panel="${d}">${d}</button>
             `).join('')}
@@ -439,119 +478,232 @@ const Tpl = {
         `).join('')}`,
 
     setCard: (set) => {
-        const type      = (set.type || 'info').toLowerCase();
-        const clickable = set.type === 'DJ';
-        const scene     = [set.scene, !clickable ? set.type : ''].filter(Boolean).join(' · ');
+        const type  = (set.type || 'info').toLowerCase();
+        const scene = [set.scene, type !== 'dj' ? set.type : ''].filter(Boolean).join(' · ');
         return `
-            <div class="set-card type-${type} ${clickable ? 'clickable' : ''}"
-                 ${clickable ? `data-idx="${set._idx}"` : ''}>
+            <div class="set-card type-${type} clickable" data-idx="${set._idx}">
                 <div class="set-time">${set.heure_debut}</div>
                 <div class="set-info">
                     <div class="set-name">${set.nom}</div>
                     ${scene ? `<div class="set-detail">${scene}</div>` : ''}
                     ${set.style ? `<div class="set-style">${set.style}</div>` : ''}
                 </div>
-                ${clickable ? `<div class="set-arrow">${icons.chevron}</div>` : ''}
+                <div class="set-arrow">${icons.chevron}</div>
             </div>`;
     },
 
-    djModal: (set) => `
+    itemModal: (set) => `
         ${set.image_url
-            ? `<img src="${set.image_url}" alt="${set.nom}" class="dj-portrait" onerror="this.style.display='none'">`
+            ? `<img src="${set.image_url}" alt="${set.nom}" class="dj-portrait"
+                    onerror="this.style.display='none'">`
             : ''
         }
         <div class="dj-name">${set.nom}</div>
         ${set.style ? `<div class="dj-style">${set.style}</div>` : ''}
+        ${set.note  ? `<div class="item-note">${set.note}</div>`  : ''}
         <div class="dj-tags">
             ${set.heure_debut && set.heure_fin
                 ? `<span class="dj-tag">${set.heure_debut} → ${set.heure_fin}</span>`
                 : ''}
             ${set.scene    ? `<span class="dj-tag">${set.scene}</span>`    : ''}
+            ${set.type && set.type !== 'DJ' ? `<span class="dj-tag">${set.type}</span>` : ''}
             ${set.materiel ? `<span class="dj-tag">${set.materiel}</span>` : ''}
         </div>`,
 
-    infos: (repas) => {
+    catering: (repas, cuisine, bar) => {
+        const repasInfo = App.t('infos_repas', '');
+        const barInfo   = App.t('infos_bar', '');
+
+        const gtnContent = [
+            repasInfo ? `<p>${repasInfo}</p>` : '',
+            barInfo   ? `<p>${barInfo}</p>`   : '',
+        ].filter(Boolean).join('');
+
+        const gtnHtml = gtnContent ? `
+            <div class="gtn-wrap">
+                <div class="accordion">
+                    <div class="accordion-header">À savoir ${icons.chevronDown}</div>
+                    <div class="accordion-body">${gtnContent}</div>
+                </div>
+            </div>` : '';
+
         const byDay = {};
         repas.forEach(r => (byDay[r.jour] = byDay[r.jour] || []).push(r));
 
-        const repasHtml = Object.keys(byDay).length ? `
-            <p class="section-label">Menu</p>
-            <div class="accordion-list">
-                ${Object.entries(byDay).map(([jour, plats]) => `
-                    <div class="accordion">
-                        <div class="accordion-header">
-                            ${jour} ${icons.chevronDown}
-                        </div>
-                        <div class="accordion-body">
-                            ${plats.map(p => `
-                                <div class="repas-row">
-                                    <span class="repas-moment">${p.moment}</span>
-                                    <span class="repas-plat">${p.plat}</span>
-                                    ${p.allergenes ? `<span class="repas-allergenes">${p.allergenes}</span>` : ''}
-                                </div>`).join('')}
-                        </div>
-                    </div>`).join('')}
+        const menuHtml = Object.keys(byDay).length
+            ? `<div class="menu-wrap">
+                   ${Object.entries(byDay).map(([jour, plats]) => `
+                       <div class="meal-day-title">${jour}</div>
+                       <div class="repas-block">
+                           ${plats.map(p => `
+                               <div class="repas-row">
+                                   <span class="repas-moment">${p.moment}</span>
+                                   <span class="repas-plat">${p.plat}</span>
+                                   ${p.allergenes
+                                       ? `<span class="repas-allergenes">${p.allergenes}</span>`
+                                       : ''}
+                               </div>`).join('')}
+                       </div>`).join('')}
+               </div>`
+            : '<div class="empty-state">Menu à venir</div>';
+
+        return `
+            ${gtnHtml}
+            <div class="day-tabs">
+                <button class="day-tab active" data-panel="menu">Menu</button>
+                <button class="day-tab" data-panel="shifts">Shifts</button>
+            </div>
+            <div class="day-panel" data-panel="menu">${menuHtml}</div>
+            <div class="day-panel hidden" data-panel="shifts">${Tpl.shifts(cuisine, bar)}</div>`;
+    },
+
+    logistique: (voitures, passagers, train) => {
+        const paxByDriver = {};
+        passagers.forEach(p => (paxByDriver[p.conducteur] = paxByDriver[p.conducteur] || []).push(p));
+
+        const voituresHtml = voitures.length
+            ? `<div class="covoit-grid">
+                   ${voitures.map(v => {
+                       const pax = paxByDriver[v.conducteur] || [];
+                       return `
+                       <div class="car-card">
+                           <div class="car-card-top">
+                               <div class="car-conductor">${v.conducteur}</div>
+                               <span class="car-badge">
+                                   ${v.nb_places} place${v.nb_places > 1 ? 's' : ''}
+                               </span>
+                           </div>
+                           ${v.telephone
+                               ? `<a class="car-phone" href="tel:${v.telephone}">${v.telephone}</a>`
+                               : ''}
+                           ${(v.lieu_depart || v.heure_depart) ? `
+                               <div class="car-trip">
+                                   <span class="car-trip-label">Aller</span>
+                                   <span class="car-trip-val">
+                                       ${[v.lieu_depart, v.heure_depart].filter(Boolean).join(' · ')}
+                                   </span>
+                               </div>` : ''}
+                           ${(v.lieu_retour || v.heure_retour) ? `
+                               <div class="car-trip">
+                                   <span class="car-trip-label">Retour</span>
+                                   <span class="car-trip-val">
+                                       ${[v.lieu_retour, v.heure_retour].filter(Boolean).join(' · ')}
+                                   </span>
+                               </div>` : ''}
+                           ${pax.length ? `
+                               <div class="car-passengers">
+                                   <div class="car-passengers-label">Passagers</div>
+                                   ${pax.map(p => `
+                                       <div class="passenger-row">
+                                           <span>${p.nom_passager}</span>
+                                           <span class="passenger-trajet">${p.trajet}</span>
+                                       </div>`).join('')}
+                               </div>` : ''}
+                       </div>`;
+                   }).join('')}
+               </div>`
+            : '<div class="empty-state">Aucune voiture définie</div>';
+
+        const trainHtml = train.length
+            ? `<div class="train-list">
+                   ${train.map(t => `
+                       <div class="train-row">
+                           <div class="train-name">${t.nom}</div>
+                           ${t.heure_depart_train ? `
+                               <div class="train-info">
+                                   Aller · ${[t.jour_aller, t.heure_depart_train].filter(Boolean).join(' ')}
+                               </div>` : ''}
+                           ${t.heure_retour_train ? `
+                               <div class="train-info">Retour · ${t.heure_retour_train}</div>` : ''}
+                           ${t.conducteur_pickup ? `
+                               <div class="train-pickup">
+                                   Pickup pour l'aller : ${t.conducteur_pickup}
+                               </div>` : ''}
+                       </div>`).join('')}
+               </div>`
+            : '<div class="empty-state">Aucune info train</div>';
+
+        const adresse     = App.t('infos_adresse', '');
+        const voitureInfo = App.t('infos_voiture', '');
+        const trainInfo   = App.t('infos_train', '');
+
+        const gtnContent = [
+            adresse     ? `<p><strong>Adresse</strong><br>${adresse}</p>`        : '',
+            voitureInfo ? `<p><strong>En voiture</strong><br>${voitureInfo}</p>` : '',
+            trainInfo   ? `<p><strong>En train</strong><br>${trainInfo}</p>`     : '',
+        ].filter(Boolean).join('');
+
+        const gtnHtml = gtnContent ? `
+            <div class="gtn-wrap">
+                <div class="accordion">
+                    <div class="accordion-header">Infos pratiques ${icons.chevronDown}</div>
+                    <div class="accordion-body">${gtnContent}</div>
+                </div>
             </div>` : '';
 
         return `
-            <p class="section-label">Pratique</p>
-            <div class="accordion-list">
-                <div class="accordion">
-                    <div class="accordion-header">Comment venir ${icons.chevronDown}</div>
-                    <div class="accordion-body">
-                        <p><strong>Adresse</strong><br>${App.t('infos_adresse', 'À compléter')}</p>
-                        <p><strong>Ouverture</strong><br>${App.t('infos_horaires', 'Vendredi 19h → Dimanche 15h')}</p>
-                        <p><strong>En voiture</strong><br>${App.t('infos_voiture', 'Parking sur place. Voir Covoit pour les trajets groupés.')}</p>
-                        <p><strong>En train</strong><br>${App.t('infos_train', 'Voir Covoit pour les pickups gare.')}</p>
-                    </div>
-                </div>
-                <div class="accordion">
-                    <div class="accordion-header">Quoi apporter ${icons.chevronDown}</div>
-                    <div class="accordion-body">
-                        <p><strong>Si tu dors à l'intérieur</strong></p>
-                        <ul>${App.t('infos_items_interieur', 'Duvet ou couverture\nOreiller\nServiette')
-                            .split('\n').map(i => `<li>${i}</li>`).join('')}</ul>
-                        <p><strong>Si tu dors en tente</strong></p>
-                        <ul>${App.t('infos_items_tente', 'Tente\nDuvet chaud\nTapis de sol')
-                            .split('\n').map(i => `<li>${i}</li>`).join('')}</ul>
-                        <p><strong>Pour tout le monde</strong></p>
-                        <ul>${App.t('infos_items_commun', 'Vêtements chauds pour la nuit\nDéguisement ✨')
-                            .split('\n').map(i => `<li>${i}</li>`).join('')}</ul>
-                    </div>
-                </div>
-                <div class="accordion">
-                    <div class="accordion-header">Repas &amp; boissons ${icons.chevronDown}</div>
-                    <div class="accordion-body">
-                        <p>${App.t('infos_repas', 'Les repas sont organisés collectivement — voir Shifts pour savoir quand tu cuisines.')}</p>
-                        <p>${App.t('infos_bar', 'Le bar est assuré par l\'équipe en shifts.')}</p>
-                    </div>
-                </div>
+            ${gtnHtml}
+            <div class="day-tabs">
+                <button class="day-tab active" data-panel="voiture">Je viens en voiture</button>
+                <button class="day-tab" data-panel="train">Je viens en train</button>
+            </div>
+            <div class="day-panel" data-panel="voiture">${voituresHtml}</div>
+            <div class="day-panel hidden" data-panel="train">${trainHtml}</div>`;
+    },
+
+    dodo: (rows) => {
+        const schemaUrl = App.t('plan_dodo_schema_url', '');
+        const interieur = App.t('infos_item_interieur', '');
+        const tente     = App.t('infos_items_tente', '');
+
+        const gtnContent = [
+            interieur ? `
+                <p><strong>Si tu dors à l'intérieur</strong></p>
+                <ul>${interieur.split('\n').map(i => `<li>${i}</li>`).join('')}</ul>` : '',
+            tente ? `
+                <p><strong>Si tu dors en tente</strong></p>
+                <ul>${tente.split('\n').map(i => `<li>${i}</li>`).join('')}</ul>` : '',
+        ].filter(Boolean).join('');
+
+        const gtnHtml = gtnContent ? `
+            <div class="gtn-wrap">
                 <div class="accordion">
                     <div class="accordion-header">À savoir ${icons.chevronDown}</div>
-                    <div class="accordion-body">
-                        ${App.t('infos_a_savoir', 'Respect des lieux et des voisins.\nVendredi les organisatrices sont occupées — prends ton autonomie.\nBienveillance et care.')
-                            .split('\n').map(l => `<p>${l}</p>`).join('')}
-                    </div>
+                    <div class="accordion-body">${gtnContent}</div>
                 </div>
+            </div>` : '';
+
+        const sorted = [...rows].sort((a, b) =>
+            (a.occupant || '').localeCompare(b.occupant || '', 'fr')
+        );
+
+        const listeHtml = sorted.length
+            ? `<div class="dodo-list">
+                   ${sorted.map(r => `
+                       <div class="dodo-row">
+                           <div class="dodo-name">${r.occupant || '—'}</div>
+                           <div class="dodo-info">
+                               <div class="dodo-chambre">${r.chambre}</div>
+                               <div class="dodo-gite">${r.gite} · ${r.etage}</div>
+                           </div>
+                       </div>`).join('')}
+               </div>`
+            : '<div class="empty-state">Plan dodo à venir</div>';
+
+        const schemaHtml = schemaUrl
+            ? `<div class="schema-viewport">
+                   <img src="${schemaUrl}" alt="Plan des chambres" class="schema-img">
+               </div>`
+            : '<div class="empty-state">Schéma à venir</div>';
+
+        return `
+            ${gtnHtml}
+            <div class="day-tabs">
+                <button class="day-tab active" data-panel="liste">Liste</button>
+                <button class="day-tab" data-panel="schema">Schéma</button>
             </div>
-            ${repasHtml}
-            <p class="section-label">Plus</p>
-            <div data-nav="deguisements" class="link-card">
-                <div class="link-card-icon">${icons.star}</div>
-                <div>
-                    <div class="link-card-label">Déguisements</div>
-                    <div class="link-card-sub">Inspi & références</div>
-                </div>
-            </div>
-            <a class="link-card"
-               href="https://drive.google.com/drive/folders/1TQeQmUi_dqUGA__mUK0F-CUq2ApxHiGW?usp=sharing"
-               target="_blank" rel="noopener">
-                <div class="link-card-icon">${icons.photo}</div>
-                <div>
-                    <div class="link-card-label">Photos</div>
-                    <div class="link-card-sub">Album Google Drive</div>
-                </div>
-            </a>`;
+            <div class="day-panel" data-panel="liste">${listeHtml}</div>
+            <div class="day-panel hidden" data-panel="schema">${schemaHtml}</div>`;
     },
 
     shifts: (cuisine, bar) => {
@@ -601,109 +753,23 @@ const Tpl = {
         return cuisineHtml + barHtml
             || '<div class="empty-state">Les shifts ne sont pas encore définis</div>';
     },
-
-    covoit: (voitures, passagers, train) => {
-        const paxByDriver = {};
-        passagers.forEach(p => (paxByDriver[p.conducteur] = paxByDriver[p.conducteur] || []).push(p));
-
-        const voituresHtml = voitures.length ? `
-            <p class="section-label">Voitures</p>
-            <div class="covoit-block">
-                ${voitures.map(v => `
-                    <div class="car-card">
-                        <div class="car-conductor">${v.conducteur}</div>
-                        <div class="car-meta">
-                            ${[v.lieu_depart, v.heure_depart].filter(Boolean).join(' · ')}
-                            ${v.heure_arrivee_festival ? ` → arrivée ${v.heure_arrivee_festival}` : ''}
-                        </div>
-                        <span class="car-badge">${v.nb_places} place${v.nb_places > 1 ? 's' : ''}</span>
-                        ${paxByDriver[v.conducteur]?.length ? `
-                            <div class="car-passengers">
-                                <div class="car-passengers-label">Passagers</div>
-                                ${paxByDriver[v.conducteur].map(p => `
-                                    <div class="passenger-row">
-                                        ${p.nom_passager}
-                                        <span style="color:var(--text-3)">(${p.trajet})</span>
-                                    </div>`).join('')}
-                            </div>` : ''}
-                    </div>`).join('')}
-            </div>` : '';
-
-        const trainHtml = train.length ? `
-            <p class="section-label">Train</p>
-            <div class="covoit-block">
-                ${train.map(t => `
-                    <div class="car-card">
-                        <div class="car-conductor">${t.nom}</div>
-                        <div class="car-meta">
-                            ${t.heure_depart_train ? `Départ ${t.jour_aller} ${t.heure_depart_train}` : ''}
-                            ${t.heure_retour_train ? ` · Retour ${t.jour_retour} ${t.heure_retour_train}` : ''}
-                        </div>
-                        ${t.conducteur_pickup ? `<div class="car-meta">Pickup : ${t.conducteur_pickup}</div>` : ''}
-                    </div>`).join('')}
-            </div>` : '';
-
-        return voituresHtml + trainHtml
-            || '<div class="empty-state">Le covoiturage n\'est pas encore défini</div>';
-    },
-
-    dodo: (rows) => {
-        const schemaUrl = App.t('plan_dodo_schema_url', '');
-
-        const listeHtml = rows.length
-            ? (() => {
-                const sorted = [...rows].sort((a, b) =>
-                    (a.occupant || '').localeCompare(b.occupant || '', 'fr')
-                );
-                return `<div class="dodo-list">
-                    ${sorted.map(r => `
-                        <div class="dodo-row">
-                            <div class="dodo-name">${r.occupant || '—'}</div>
-                            <div class="dodo-info">
-                                <div class="dodo-chambre">${r.chambre}</div>
-                                <div class="dodo-gite">${r.gite} · ${r.etage}</div>
-                            </div>
-                        </div>`).join('')}
-                </div>`;
-            })()
-            : '<div class="empty-state">Le plan dodo n\'est pas encore défini</div>';
-
-        const schemaHtml = schemaUrl
-            ? `<div class="dodo-schema-wrap"><img src="${schemaUrl}" alt="Plan des chambres" class="dodo-schema-img"></div>`
-            : '<div class="empty-state">Schéma à venir</div>';
-
-        return `
-            <div class="dodo-tabs">
-                <button class="day-tab active" data-panel="liste">Liste</button>
-                <button class="day-tab" data-panel="schema">Schéma</button>
-            </div>
-            <div class="day-panel" data-panel="liste">${listeHtml}</div>
-            <div class="day-panel hidden" data-panel="schema">${schemaHtml}</div>`;
-    },
-
-    deguisements: () => `
-        <p class="deg-intro">
-            ${App.t('deguisements_intro',
-                'Samedi journée et soir c\'est le moment fort — mais tu peux en porter tout le weekend si t\'as envie. Aucune obligation, juste une invitation à mettre un peu de folie.'
-            )}
-        </p>
-        <div class="deg-gallery">
-            <div class="empty-state" style="grid-column:span 2;padding:32px 0">Images à venir</div>
-        </div>`,
 };
 
 
 /* ─── Icons ──────────────────────────────────────────────────────────────────── */
 const icons = {
     music:       `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>`,
-    clock:       `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12,7 12,12 15,15"/></svg>`,
+    utensils:    `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2"/><line x1="7" y1="2" x2="7" y2="22"/><path d="M21 15V2a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3"/><line x1="21" y1="15" x2="21" y2="22"/></svg>`,
+    mapPin:      `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>`,
+    moon:        `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>`,
     home_:       `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>`,
-    car:         `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="9" width="22" height="9" rx="2"/><path d="M5 9V7a2 2 0 012-2h10a2 2 0 012 2v2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>`,
-    star:        `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>`,
-    info:        `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="8" stroke-width="2.5"/><line x1="12" y1="12" x2="12" y2="16"/></svg>`,
-    photo:       `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/></svg>`,
+    photo:       `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/></svg>`,
     chevron:     `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9,18 15,12 9,6"/></svg>`,
     chevronDown: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,9 12,15 18,9"/></svg>`,
+    star:        `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>`,
+    info:        `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="8" stroke-width="2.5"/><line x1="12" y1="12" x2="12" y2="16"/></svg>`,
+    car:         `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="9" width="22" height="9" rx="2"/><path d="M5 9V7a2 2 0 012-2h10a2 2 0 012 2v2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>`,
+    clock:       `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12,7 12,12 15,15"/></svg>`,
 };
 
 
