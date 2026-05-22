@@ -16,7 +16,7 @@ const AdminTpl = {
 
     // ── Montage ───────────────────────────────────────────────────────────────
 
-    montage(tasks) {
+    montage(tasks, inventaire = []) {
         const TEAMS = ['Hangar', 'Préau', 'Gîte-Stockage-Courses'];
         const byTeam = {};
         TEAMS.forEach(t => byTeam[t] = []);
@@ -39,28 +39,65 @@ const AdminTpl = {
                         (byCategorie[task.categorie] = byCategorie[task.categorie] || []).push(task);
                     });
 
-                const schemas = [...new Set(teamTasks.map(t => t.schema_url).filter(Boolean))];
+                const keywords = t.split('-').map(s => s.trim().toLowerCase());
+                const teamInv  = inventaire.filter(item => {
+                    const util = (item.utilisation || '').toString().toLowerCase();
+                    return keywords.some(kw => kw.length > 1 && util.includes(kw));
+                });
+
+                const invHtml = teamInv.length ? `
+                    <div class="admin-section">
+                        <div class="admin-section-title">Inventaire</div>
+                        <div class="montage-inv-list">
+                            ${teamInv.map(item => `
+                                <div class="montage-inv-row">
+                                    <div>
+                                        <div class="montage-inv-name">
+                                            ${item.nom}${Number(item.quantite) > 1 ? ` × ${item.quantite}` : ''}
+                                        </div>
+                                        ${item.lieu ? `<div class="montage-inv-loc">${item.lieu}</div>` : ''}
+                                    </div>
+                                    ${item.recupere ? `<span class="montage-inv-done">✓</span>` : ''}
+                                </div>`).join('')}
+                        </div>
+                    </div>` : '';
 
                 return `
                     <div class="day-panel ${i > 0 ? 'hidden' : ''}" data-panel="${t}">
-                        ${schemas.map(url => `
-                            <div style="padding:12px 16px 0">
-                                <img src="${url}" alt="Schéma ${t}" style="width:100%;border-radius:var(--r)">
-                            </div>`).join('')}
                         ${Object.entries(byCategorie).map(([cat, catTasks]) => `
                             <div class="admin-section">
                                 <div class="admin-section-title">${cat}</div>
-                                ${catTasks.map(task => `
-                                    <div class="montage-task">
-                                        <span class="task-name">${task.tache}</span>
-                                        ${task.duree_estimee
-                                            ? `<span class="task-dur">${task.duree_estimee}</span>`
-                                            : ''}
-                                    </div>`).join('')}
+                                ${catTasks.map(task => {
+                                    const hasDetail = !!(task.description || task.schema_url);
+                                    return `
+                                    <div class="montage-task${hasDetail ? ' has-detail' : ''}">
+                                        <div class="montage-task-header">
+                                            <span class="task-name">${task.tache}</span>
+                                            <div class="montage-task-right">
+                                                ${task.duree_estimee
+                                                    ? `<span class="task-dur">${task.duree_estimee}</span>`
+                                                    : ''}
+                                                ${hasDetail
+                                                    ? `<span class="task-chevron">${icons.chevronDown}</span>`
+                                                    : ''}
+                                            </div>
+                                        </div>
+                                        ${hasDetail ? `
+                                            <div class="montage-task-body hidden">
+                                                ${task.description
+                                                    ? `<div class="montage-task-desc">${fmt(task.description)}</div>`
+                                                    : ''}
+                                                ${task.schema_url
+                                                    ? `<img src="${task.schema_url}" class="montage-task-schema" alt="">`
+                                                    : ''}
+                                            </div>` : ''}
+                                    </div>`;
+                                }).join('')}
                             </div>`).join('')}
                         ${!Object.keys(byCategorie).length
                             ? '<div class="empty-state">Pas de tâches pour cette team</div>'
                             : ''}
+                        ${invHtml}
                     </div>`;
             }).join('')}`;
     },
@@ -226,7 +263,7 @@ const AdminTpl = {
                     <div class="car-card">
                         <div class="car-conductor">${v.conducteur}</div>
                         ${v.telephone
-                            ? `<div class="car-phone">📞 ${v.telephone}</div>`
+                            ? `<a class="car-phone" href="tel:${v.telephone}">${icons.phone} ${v.telephone}</a>`
                             : ''}
                         <div class="car-meta">
                             ${[v.lieu_depart, v.heure_depart].filter(Boolean).join(' · ')}

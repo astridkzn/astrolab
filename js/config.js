@@ -3,8 +3,8 @@ const CONFIG = {
 
     // Mots de passe — à changer avant de partager le lien
     PASSWORDS: {
-        festivalier: 'astro2025',
-        admin:       'astro-admin2025',
+        festivalier: 'astro2026',
+        admin:       'astroadmin2026',
     },
 
     CACHE_TTL: 5 * 60 * 1000, // 5 min

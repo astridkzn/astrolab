@@ -62,7 +62,7 @@ ID : `1Op0O3sUWPec0cjNENKbRfO3RKvphkCJo79Vr_pxfjb8`
 | `covoit_train` | nom, heure_depart_train, jour_aller, heure_retour_train, jour_retour, conducteur_pickup | — |
 | `plan_dodo` | gite, etage, chambre, config_lit, occupant | Gîte 1 et Gîte 2 |
 | `todo` | tache, categorie, fait | colonnes dans cet ordre exact |
-| `montage_tasks` | team, categorie, ordre, tache, duree_estimee, schema_url | teams : Hangar/Préau/Gîte-Stockage-Courses |
+| `montage_tasks` | team, categorie, ordre, tache, description, duree_estimee, schema_url | teams : Hangar/Préau/Gîte-Stockage-Courses ; `description` = développement de la tâche (dépliable au clic) ; `schema_url` = schéma spécifique à la tâche |
 | `textes` | cle, valeur | contenu éditorial de la webapp (voir ci-dessous) |
 
 ### Clés `textes` disponibles
@@ -79,7 +79,9 @@ ID : `1Op0O3sUWPec0cjNENKbRfO3RKvphkCJo79Vr_pxfjb8`
 | `infos_bar` | Infos > Repas & boissons |
 | `infos_a_savoir` | Infos > À savoir (une ligne = un paragraphe) |
 | `deguisements_intro` | Page Déguisements |
-| `plan_dodo_schema_url` | Plan dodo > onglet Schéma |
+| `plan_dodo_schema_gite1` | Plan dodo > onglet Gîte 1 |
+| `plan_dodo_schema_gite2_rdc` | Plan dodo > onglet Gîte 2 RDC |
+| `plan_dodo_schema_gite2_1er` | Plan dodo > onglet Gîte 2 1er étage |
 
 ---
 
@@ -121,7 +123,12 @@ Astrolab/
 
 ## Ce qui reste à faire
 - [ ] **Déployer sur GitHub Pages** — pas encore fait
-- [ ] **Remplir les onglets Sheets** : shifts cuisine, shifts bar, plan dodo, covoit, todo, montage_tasks
-- [ ] **Remplir l'onglet `textes`** : adresse, horaires, infos pratiques, intro déguisements
-- [ ] **Ajouter les assets** : schémas gîtes (`plan_dodo_schema_url`), images inventaire, galerie déguisements
+- [ ] **Remplir les onglets Sheets** : shifts cuisine, shifts bar, plan dodo, covoit, todo, montage_tasks (+ colonne `description`)
+- [ ] **Remplir l'onglet `textes`** : adresse, horaires, infos pratiques, intro déguisements, et les 3 nouvelles clés dodo (`plan_dodo_schema_gite1`, `plan_dodo_schema_gite2_rdc`, `plan_dodo_schema_gite2_1er`)
+- [ ] **Ajouter les assets** : schémas gîtes (3 images), images inventaire, galerie déguisements
 - [ ] **Covoit form festivalier** : formulaire pour s'inscrire conducteur/passager (prévu, pas encore fait)
+
+## Rendu texte (fmt)
+Les valeurs de la colonne `valeur` dans l'onglet `textes`, et le champ `description` dans `montage_tasks`, supportent :
+- Retours à la ligne (Alt+Enter dans Sheets) → affichés correctement
+- `**texte**` → **texte** en gras

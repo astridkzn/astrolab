@@ -193,9 +193,12 @@ const App = {
     // ── Admin views ───────────────────────────────────────────────────────────
 
     async _renderAdminMontage(main) {
-        const tasks = await Api.get('montage_tasks');
-        main.innerHTML = AdminTpl.montage(tasks);
+        const [tasks, inventaire] = await Promise.all([
+            Api.get('montage_tasks'), Api.get('inventaire'),
+        ]);
+        main.innerHTML = AdminTpl.montage(tasks, inventaire);
         this._bindTabs(main);
+        this._bindMontageExpand(main);
     },
 
     async _renderAdminInventaire(main) {
@@ -335,6 +338,16 @@ const App = {
         });
     },
 
+    _bindMontageExpand(container) {
+        container.addEventListener('click', e => {
+            const task = e.target.closest('.montage-task.has-detail');
+            if (!task) return;
+            task.classList.toggle('open');
+            const body = task.querySelector('.montage-task-body');
+            if (body) body.classList.toggle('hidden');
+        });
+    },
+
     _bindTodoForm(main) {
         const btn        = main.querySelector('#todo-add-btn');
         const form       = main.querySelector('#todo-add-form');
@@ -423,7 +436,7 @@ const Tpl = {
                 <div class="accordion">
                     <div class="accordion-header">À savoir ${icons.chevronDown}</div>
                     <div class="accordion-body">
-                        ${aSavoir.split('\n').map(l => `<p>${l}</p>`).join('')}
+                        ${aSavoir.split('\n').map(l => `<p>${fmt(l)}</p>`).join('')}
                     </div>
                 </div>
             </div>` : '';
@@ -445,7 +458,7 @@ const Tpl = {
                 <div class="accordion">
                     <div class="accordion-header">Déguisements ${icons.chevronDown}</div>
                     <div class="accordion-body">
-                        ${degIntro ? `<p class="deg-intro-text">${degIntro}</p>` : ''}
+                        ${degIntro ? `<p class="deg-intro-text">${fmt(degIntro)}</p>` : ''}
                         ${degGallery}
                         <a class="deg-drive-link" href="${driveUrl}" target="_blank" rel="noopener">
                             ${icons.photo}&nbsp; Photos Drive →
@@ -515,8 +528,8 @@ const Tpl = {
         const barInfo   = App.t('infos_bar', '');
 
         const gtnContent = [
-            repasInfo ? `<p>${repasInfo}</p>` : '',
-            barInfo   ? `<p>${barInfo}</p>`   : '',
+            repasInfo ? `<p>${fmt(repasInfo)}</p>` : '',
+            barInfo   ? `<p>${fmt(barInfo)}</p>`   : '',
         ].filter(Boolean).join('');
 
         const gtnHtml = gtnContent ? `
@@ -564,7 +577,14 @@ const Tpl = {
         const voituresHtml = voitures.length
             ? `<div class="covoit-grid">
                    ${voitures.map(v => {
-                       const pax = paxByDriver[v.conducteur] || [];
+                       const pax     = paxByDriver[v.conducteur] || [];
+                       const total   = parseInt(v.nb_places) || 0;
+                       const nbAller = pax.filter(p =>
+                           p.trajet === 'Aller' || p.trajet === 'Aller-Retour').length;
+                       const nbRetour = pax.filter(p =>
+                           p.trajet === 'Retour' || p.trajet === 'Aller-Retour').length;
+                       const libresAller  = total - nbAller;
+                       const libresRetour = total - nbRetour;
                        return `
                        <div class="car-card">
                            <div class="car-card-top">
@@ -574,8 +594,11 @@ const Tpl = {
                                </span>
                            </div>
                            ${v.telephone
-                               ? `<a class="car-phone" href="tel:${v.telephone}">${v.telephone}</a>`
+                               ? `<a class="car-phone" href="tel:${v.telephone}">
+                                      ${icons.phone} ${v.telephone}
+                                  </a>`
                                : ''}
+                           <div class="car-avail">↑ ${libresAller} libre${libresAller > 1 ? 's' : ''} · ↓ ${libresRetour} libre${libresRetour > 1 ? 's' : ''}</div>
                            ${(v.lieu_depart || v.heure_depart) ? `
                                <div class="car-trip">
                                    <span class="car-trip-label">Aller</span>
@@ -611,10 +634,10 @@ const Tpl = {
                            <div class="train-name">${t.nom}</div>
                            ${t.heure_depart_train ? `
                                <div class="train-info">
-                                   Aller · ${[t.jour_aller, t.heure_depart_train].filter(Boolean).join(' ')}
+                                   Départ train · ${[t.jour_aller, t.heure_depart_train].filter(Boolean).join(' ')}
                                </div>` : ''}
                            ${t.heure_retour_train ? `
-                               <div class="train-info">Retour · ${t.heure_retour_train}</div>` : ''}
+                               <div class="train-info">Retour train · ${[t.jour_retour, t.heure_retour_train].filter(Boolean).join(' ')}</div>` : ''}
                            ${t.conducteur_pickup ? `
                                <div class="train-pickup">
                                    Pickup pour l'aller : ${t.conducteur_pickup}
@@ -628,9 +651,9 @@ const Tpl = {
         const trainInfo   = App.t('infos_train', '');
 
         const gtnContent = [
-            adresse     ? `<p><strong>Adresse</strong><br>${adresse}</p>`        : '',
-            voitureInfo ? `<p><strong>En voiture</strong><br>${voitureInfo}</p>` : '',
-            trainInfo   ? `<p><strong>En train</strong><br>${trainInfo}</p>`     : '',
+            adresse     ? `<p><strong>Adresse</strong><br>${fmt(adresse)}</p>`        : '',
+            voitureInfo ? `<p><strong>En voiture</strong><br>${fmt(voitureInfo)}</p>` : '',
+            trainInfo   ? `<p><strong>En train</strong><br>${fmt(trainInfo)}</p>`     : '',
         ].filter(Boolean).join('');
 
         const gtnHtml = gtnContent ? `
@@ -652,17 +675,19 @@ const Tpl = {
     },
 
     dodo: (rows) => {
-        const schemaUrl = App.t('plan_dodo_schema_url', '');
-        const interieur = App.t('infos_item_interieur', '');
-        const tente     = App.t('infos_items_tente', '');
+        const gite1Url   = App.t('plan_dodo_schema_gite1', '');
+        const gite2RdcUrl = App.t('plan_dodo_schema_gite2_rdc', '');
+        const gite21erUrl = App.t('plan_dodo_schema_gite2_1er', '');
+        const interieur  = App.t('infos_items_interieur', '');
+        const tente      = App.t('infos_items_tente', '');
 
         const gtnContent = [
             interieur ? `
                 <p><strong>Si tu dors à l'intérieur</strong></p>
-                <ul>${interieur.split('\n').map(i => `<li>${i}</li>`).join('')}</ul>` : '',
+                <ul>${interieur.split('\n').map(i => `<li>${fmt(i)}</li>`).join('')}</ul>` : '',
             tente ? `
                 <p><strong>Si tu dors en tente</strong></p>
-                <ul>${tente.split('\n').map(i => `<li>${i}</li>`).join('')}</ul>` : '',
+                <ul>${tente.split('\n').map(i => `<li>${fmt(i)}</li>`).join('')}</ul>` : '',
         ].filter(Boolean).join('');
 
         const gtnHtml = gtnContent ? `
@@ -690,20 +715,24 @@ const Tpl = {
                </div>`
             : '<div class="empty-state">Plan dodo à venir</div>';
 
-        const schemaHtml = schemaUrl
-            ? `<div class="schema-viewport">
-                   <img src="${schemaUrl}" alt="Plan des chambres" class="schema-img">
+        const schemaPanel = (url, label) => url
+            ? `<div class="schema-viewport schema-viewport--full">
+                   <img src="${url}" alt="${label}" class="schema-img">
                </div>`
             : '<div class="empty-state">Schéma à venir</div>';
 
         return `
             ${gtnHtml}
             <div class="day-tabs">
-                <button class="day-tab active" data-panel="liste">Liste</button>
-                <button class="day-tab" data-panel="schema">Schéma</button>
+                <button class="day-tab active" data-panel="liste">Répartition</button>
+                <button class="day-tab" data-panel="gite1">Gîte 1</button>
+                <button class="day-tab" data-panel="gite2rdc">Gîte 2 RDC</button>
+                <button class="day-tab" data-panel="gite21er">Gîte 2 1er</button>
             </div>
             <div class="day-panel" data-panel="liste">${listeHtml}</div>
-            <div class="day-panel hidden" data-panel="schema">${schemaHtml}</div>`;
+            <div class="day-panel hidden" data-panel="gite1">${schemaPanel(gite1Url, 'Plan Gîte 1')}</div>
+            <div class="day-panel hidden" data-panel="gite2rdc">${schemaPanel(gite2RdcUrl, 'Plan Gîte 2 RDC')}</div>
+            <div class="day-panel hidden" data-panel="gite21er">${schemaPanel(gite21erUrl, 'Plan Gîte 2 — 1er étage')}</div>`;
     },
 
     shifts: (cuisine, bar) => {
@@ -756,6 +785,16 @@ const Tpl = {
 };
 
 
+/* ─── Text formatter ────────────────────────────────────────────────────────── */
+const fmt = (str) => {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\n/g, '<br>');
+};
+
+
 /* ─── Icons ──────────────────────────────────────────────────────────────────── */
 const icons = {
     music:       `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>`,
@@ -770,6 +809,7 @@ const icons = {
     info:        `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="8" stroke-width="2.5"/><line x1="12" y1="12" x2="12" y2="16"/></svg>`,
     car:         `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="9" width="22" height="9" rx="2"/><path d="M5 9V7a2 2 0 012-2h10a2 2 0 012 2v2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>`,
     clock:       `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12,7 12,12 15,15"/></svg>`,
+    phone:       `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.68A2 2 0 012 1h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>`,
 };
 
 
