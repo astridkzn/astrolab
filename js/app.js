@@ -186,6 +186,7 @@ const App = {
         const rows = await Api.get('plan_dodo');
         main.innerHTML = Tpl.dodo(rows);
         this._bindTabs(main);
+        this._bindFilters(main);
         this._bindAccordions(main);
     },
 
@@ -242,6 +243,7 @@ const App = {
             Api.get('shifts_cuisine'), Api.get('shifts_bar'), Api.get('plan_dodo'),
         ]);
         main.innerHTML = AdminTpl.equipes(cuisine, bar, dodo);
+        this._bindFilters(main);
         this._bindEditableFields(main);
     },
 
@@ -277,6 +279,20 @@ const App = {
     _bindAccordions(container) {
         container.querySelectorAll('.accordion-header').forEach(h => {
             h.addEventListener('click', () => h.closest('.accordion').classList.toggle('open'));
+        });
+    },
+
+    _bindFilters(container) {
+        container.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const group = btn.closest('.filter-group');
+                if (!group) return;
+                group.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                group.querySelectorAll('.filter-panel').forEach(p => p.classList.add('hidden'));
+                btn.classList.add('active');
+                const panel = group.querySelector(`.filter-panel[data-filter="${btn.dataset.filter}"]`);
+                if (panel) panel.classList.remove('hidden');
+            });
         });
     },
 
@@ -395,6 +411,15 @@ const App = {
 };
 
 
+/* ─── Phone normalizer ──────────────────────────────────────────────────────── */
+const normalizePhone = (phone) => {
+    if (!phone) return '';
+    const s = String(phone).replace(/[\s.\-]/g, '');
+    if (/^\d{9}$/.test(s)) return '0' + s;
+    return s;
+};
+
+
 /* ─── Templates festivalier ──────────────────────────────────────────────────── */
 const Tpl = {
 
@@ -460,8 +485,19 @@ const Tpl = {
                     <div class="accordion-body">
                         ${degIntro ? `<p class="deg-intro-text">${fmt(degIntro)}</p>` : ''}
                         ${degGallery}
+                    </div>
+                </div>
+            </div>`;
+
+        const photosIntro = App.t('photos_intro', '');
+        const photosHtml = `
+            <div class="gtn-wrap">
+                <div class="accordion">
+                    <div class="accordion-header">Photos ${icons.chevronDown}</div>
+                    <div class="accordion-body">
+                        ${photosIntro ? `<p class="deg-intro-text">${fmt(photosIntro)}</p>` : ''}
                         <a class="deg-drive-link" href="${driveUrl}" target="_blank" rel="noopener">
-                            ${icons.photo}&nbsp; Photos Drive →
+                            ${icons.photo}&nbsp; Album Drive →
                         </a>
                     </div>
                 </div>
@@ -470,7 +506,8 @@ const Tpl = {
         return `
             <div class="home-grid">${cardsHtml}</div>
             ${gtnHtml}
-            ${degHtml}`;
+            ${degHtml}
+            ${photosHtml}`;
     },
 
     programme: (days, byDay, centered = false) => `
@@ -521,7 +558,12 @@ const Tpl = {
             ${set.scene    ? `<span class="dj-tag">${set.scene}</span>`    : ''}
             ${set.type && set.type !== 'DJ' ? `<span class="dj-tag">${set.type}</span>` : ''}
             ${set.materiel ? `<span class="dj-tag">${set.materiel}</span>` : ''}
-        </div>`,
+        </div>
+        ${set.soundcloud_url
+            ? `<a class="sc-link" href="${set.soundcloud_url}" target="_blank" rel="noopener">
+                   ${icons.headphones}&nbsp; Écouter sur SoundCloud →
+               </a>`
+            : ''}`,
 
     catering: (repas, cuisine, bar) => {
         const repasInfo = App.t('infos_repas', '');
@@ -594,8 +636,8 @@ const Tpl = {
                                </span>
                            </div>
                            ${v.telephone
-                               ? `<a class="car-phone" href="tel:${v.telephone}">
-                                      ${icons.phone} ${v.telephone}
+                               ? `<a class="car-phone" href="tel:${normalizePhone(v.telephone)}">
+                                      ${icons.phone} ${normalizePhone(v.telephone)}
                                   </a>`
                                : ''}
                            <div class="car-avail">↑ ${libresAller} libre${libresAller > 1 ? 's' : ''} · ↓ ${libresRetour} libre${libresRetour > 1 ? 's' : ''}</div>
@@ -698,22 +740,40 @@ const Tpl = {
                 </div>
             </div>` : '';
 
-        const sorted = [...rows].sort((a, b) =>
-            (a.occupant || '').localeCompare(b.occupant || '', 'fr')
-        );
+        const renderDodoRow = (r) => `
+            <div class="dodo-row">
+                <div class="dodo-name">${r.occupant || '—'}</div>
+                <div class="dodo-info">
+                    <div class="dodo-chambre">${r.chambre}</div>
+                    <div class="dodo-gite">${r.gite} · ${r.etage}</div>
+                    ${r.config_lit ? `<div class="dodo-lit">${r.config_lit}${
+                        /matelas/i.test(r.config_lit)
+                            ? ' · <span class="dodo-lit-duvet">prends ton duvet !</span>'
+                            : ''
+                    }</div>` : ''}
+                </div>
+            </div>`;
 
-        const listeHtml = sorted.length
-            ? `<div class="dodo-list">
-                   ${sorted.map(r => `
-                       <div class="dodo-row">
-                           <div class="dodo-name">${r.occupant || '—'}</div>
-                           <div class="dodo-info">
-                               <div class="dodo-chambre">${r.chambre}</div>
-                               <div class="dodo-gite">${r.gite} · ${r.etage}</div>
-                           </div>
-                       </div>`).join('')}
-               </div>`
+        const sorted     = [...rows].sort((a, b) => (a.occupant || '').localeCompare(b.occupant || '', 'fr'));
+        const sortedRoom = [...rows].sort((a, b) => {
+            const g = (a.gite || '').localeCompare(b.gite || '', 'fr');
+            if (g !== 0) return g;
+            return (a.chambre || '').localeCompare(b.chambre || '', 'fr');
+        });
+
+        const makeList = (items) => items.length
+            ? `<div class="dodo-list">${items.map(renderDodoRow).join('')}</div>`
             : '<div class="empty-state">Plan dodo à venir</div>';
+
+        const listeHtml = `
+            <div class="filter-group">
+                <div class="filter-tabs">
+                    <button class="filter-btn active" data-filter="alpha">A → Z</button>
+                    <button class="filter-btn" data-filter="chambre">Par chambre</button>
+                </div>
+                <div class="filter-panel" data-filter="alpha">${makeList(sorted)}</div>
+                <div class="filter-panel hidden" data-filter="chambre">${makeList(sortedRoom)}</div>
+            </div>`;
 
         const schemaPanel = (url, label) => url
             ? `<div class="schema-viewport schema-viewport--full">
@@ -810,6 +870,7 @@ const icons = {
     car:         `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="9" width="22" height="9" rx="2"/><path d="M5 9V7a2 2 0 012-2h10a2 2 0 012 2v2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>`,
     clock:       `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12,7 12,12 15,15"/></svg>`,
     phone:       `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.68A2 2 0 012 1h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>`,
+    headphones:  `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0118 0v6"/><path d="M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3z"/><path d="M3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z"/></svg>`,
 };
 
 

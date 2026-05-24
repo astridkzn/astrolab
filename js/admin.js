@@ -190,25 +190,42 @@ const AdminTpl = {
                     </div>`).join('')}
             </div>`).join('');
 
+        const renderDodoEditRow = (r) => `
+            <div class="dodo-edit-row">
+                <div class="dodo-edit-info">
+                    <div class="dodo-edit-chambre">${r.chambre}</div>
+                    <div class="dodo-edit-meta">
+                        ${[r.etage, r.config_lit].filter(Boolean).join(' · ')}
+                    </div>
+                </div>
+                <span class="editable-name"
+                      data-tab="plan_dodo" data-row="${r._row}" data-col="occupant">
+                    ${r.occupant || '—'}
+                </span>
+            </div>`;
+
+        const sortedAlpha = [...dodo].sort((a, b) => (a.occupant || '').localeCompare(b.occupant || '', 'fr'));
+
+        const byChambreHtml = Object.entries(dodoByGite).map(([gite, rooms]) => `
+            <div class="equipes-block">
+                <div class="equipes-gite-title">${gite}</div>
+                ${rooms.map(renderDodoEditRow).join('')}
+            </div>`).join('');
+
+        const alphaHtml = sortedAlpha.length
+            ? `<div class="equipes-block">${sortedAlpha.map(renderDodoEditRow).join('')}</div>`
+            : '';
+
         const dodoHtml = Object.keys(dodoByGite).length ? `
             <p class="section-label">Plan dodo</p>
-            ${Object.entries(dodoByGite).map(([gite, rooms]) => `
-                <div class="equipes-block">
-                    <div class="equipes-gite-title">${gite}</div>
-                    ${rooms.map(r => `
-                        <div class="dodo-edit-row">
-                            <div class="dodo-edit-info">
-                                <div class="dodo-edit-chambre">${r.chambre}</div>
-                                <div class="dodo-edit-meta">
-                                    ${[r.etage, r.config_lit].filter(Boolean).join(' · ')}
-                                </div>
-                            </div>
-                            <span class="editable-name"
-                                  data-tab="plan_dodo" data-row="${r._row}" data-col="occupant">
-                                ${r.occupant || '—'}
-                            </span>
-                        </div>`).join('')}
-                </div>`).join('')}` : '';
+            <div class="filter-group">
+                <div class="filter-tabs">
+                    <button class="filter-btn active" data-filter="chambre">Par chambre</button>
+                    <button class="filter-btn" data-filter="alpha">A → Z</button>
+                </div>
+                <div class="filter-panel" data-filter="chambre">${byChambreHtml}</div>
+                <div class="filter-panel hidden" data-filter="alpha">${alphaHtml}</div>
+            </div>` : '';
 
         return (cuisineHtml + barHtml + dodoHtml)
             || '<div class="empty-state">Pas encore de données</div>';
@@ -263,7 +280,7 @@ const AdminTpl = {
                     <div class="car-card">
                         <div class="car-conductor">${v.conducteur}</div>
                         ${v.telephone
-                            ? `<a class="car-phone" href="tel:${v.telephone}">${icons.phone} ${v.telephone}</a>`
+                            ? `<a class="car-phone" href="tel:${normalizePhone(v.telephone)}">${icons.phone} ${normalizePhone(v.telephone)}</a>`
                             : ''}
                         <div class="car-meta">
                             ${[v.lieu_depart, v.heure_depart].filter(Boolean).join(' · ')}

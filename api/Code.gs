@@ -105,24 +105,29 @@ function getAllTabs() {
 
 
 function sheetToJson(sheet) {
-  const data = sheet.getDataRange().getValues();
+  const range    = sheet.getDataRange();
+  const data     = range.getValues();
+  const richData = range.getRichTextValues();
   if (data.length < 2) return [];
 
-  const headers = data[0].map(h => h.toString().trim());
-  const rows    = data.slice(1);
+  const headers  = data[0].map(h => h.toString().trim());
+  const rows     = data.slice(1);
+  const richRows = richData.slice(1);
 
   return rows
-    .map((row, i) => ({ row, sheetRow: i + 2 }))
+    .map((row, i) => ({ row, richRow: richRows[i], sheetRow: i + 2 }))
     .filter(({ row }) => row.some(cell => cell !== ''))
-    .map(({ row, sheetRow }) => {
+    .map(({ row, richRow, sheetRow }) => {
       const obj = { _row: sheetRow };
-      headers.forEach((header, i) => { obj[header] = formatCell(row[i]); });
+      headers.forEach((header, i) => {
+        obj[header] = formatCell(row[i], richRow[i]);
+      });
       return obj;
     });
 }
 
 
-function formatCell(value) {
+function formatCell(value, richText) {
   if (value && typeof value.getFullYear === 'function') {
     const tz = Session.getScriptTimeZone();
     if (value.getFullYear() === 1899) {
@@ -130,5 +135,19 @@ function formatCell(value) {
     }
     return Utilities.formatDate(value, tz, 'yyyy-MM-dd');
   }
+
+  if (richText && typeof value === 'string' && value !== '') {
+    try {
+      const runs    = richText.getRuns();
+      const hasBold = runs.some(r => r.getTextStyle().isBold());
+      if (hasBold) {
+        return runs.map(run => {
+          const text = run.getText();
+          return run.getTextStyle().isBold() ? `**${text}**` : text;
+        }).join('');
+      }
+    } catch (_) {}
+  }
+
   return value ?? '';
 }

@@ -906,6 +906,16 @@ button { font-family: var(--font-b); cursor: pointer; }
     margin-top: 2px;
 }
 
+.dodo-lit {
+    font-size: 11px;
+    color: var(--text-2);
+    margin-top: 3px;
+}
+
+.dodo-lit-duvet {
+    color: var(--accent-text);
+}
+
 
 /* ─── Dodo schema pan ────────────────────────────────────────────────────────── */
 .schema-viewport {
@@ -1500,3 +1510,50 @@ button { font-family: var(--font-b); cursor: pointer; }
 }
 
 .deg-drive-link:active { opacity: 0.7; }
+
+
+/* ─── Filter toggle (dodo répartition, admin équipes) ────────────────────────── */
+.filter-group { margin-bottom: 4px; }
+
+.filter-tabs {
+    display: flex;
+    gap: 6px;
+    padding: 10px 16px 6px;
+}
+
+.filter-btn {
+    background: var(--surface-2);
+    border: 1px solid var(--border-2);
+    border-radius: var(--r-sm);
+    color: var(--text-2);
+    font-family: var(--font-b);
+    font-size: 11px;
+    padding: 5px 12px;
+    cursor: pointer;
+    transition: color 0.1s, border-color 0.1s;
+}
+
+.filter-btn.active {
+    border-color: var(--accent);
+    color: var(--accent-text);
+}
+
+.filter-panel.hidden { display: none; }
+
+
+/* ─── SoundCloud CTA (modal DJ) ──────────────────────────────────────────────── */
+.sc-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 20px;
+    padding: 12px 16px;
+    background: var(--surface-2);
+    border: 1px solid var(--border-2);
+    border-radius: var(--r);
+    color: var(--accent-text);
+    font-size: 13px;
+    text-decoration: none;
+}
+
+.sc-link:active { opacity: 0.7; }
