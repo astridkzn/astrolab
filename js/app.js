@@ -45,8 +45,28 @@ const App = {
         this._populateNav();
         document.getElementById('screen-login').classList.add('hidden');
         document.getElementById('screen-app').classList.remove('hidden');
+        this._initScrollFabs();
         this.go(role === 'admin' ? 'montage' : 'home');
         this._prefetchAll(role);
+    },
+
+    _initScrollFabs() {
+        const main = document.getElementById('app-main');
+        main.addEventListener('scroll', () => this._updateScrollFabs(), { passive: true });
+        document.getElementById('fab-down').addEventListener('click', () => {
+            main.scrollBy({ top: 300, behavior: 'smooth' });
+        });
+        document.getElementById('fab-up').addEventListener('click', () => {
+            main.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    },
+
+    _updateScrollFabs() {
+        const main    = document.getElementById('app-main');
+        const scrolled   = main.scrollTop > 80;
+        const canScroll  = main.scrollHeight > main.clientHeight + 40;
+        document.getElementById('fab-down').classList.toggle('hidden', scrolled || !canScroll);
+        document.getElementById('fab-up').classList.toggle('hidden', !scrolled);
     },
 
     _prefetchAll(role) {
@@ -89,6 +109,7 @@ const App = {
             equipes: 'Équipes', todo: 'Todo',
         };
         document.getElementById('header-title').textContent = labels[view] ?? view;
+        document.getElementById('app-main').scrollTop = 0;
         this._render(view);
     },
 
@@ -109,6 +130,8 @@ const App = {
             main.innerHTML = '<div class="empty-state">Erreur de chargement</div>';
             console.error(err);
         }
+
+        this._updateScrollFabs();
     },
 
     async _renderFestivalier(view, main) {

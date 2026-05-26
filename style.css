@@ -206,6 +206,26 @@ button { font-family: var(--font-b); cursor: pointer; }
     flex-shrink: 0;
 }
 
+.scroll-fab {
+    position: fixed;
+    right: 16px;
+    bottom: calc(var(--nav-h) + var(--safe-b) + 12px);
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--surface-2);
+    border: 1px solid var(--border-2);
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: opacity 0.2s;
+}
+
+
 .nav-btn {
     flex: 1;
     display: flex;
