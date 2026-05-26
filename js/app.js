@@ -490,7 +490,7 @@ const Tpl = {
         const gtnHtml = aSavoir ? `
             <div class="gtn-wrap">
                 <div class="accordion">
-                    <div class="accordion-header"><span class="accordion-warn">${icons.warn}</span>À savoir ${icons.chevronDown}</div>
+                    <div class="accordion-header"><span class="accordion-warn">${icons.warn}</span>À savoir ${icons.chevron}</div>
                     <div class="accordion-body">
                         ${aSavoir.split('\n').map(l => `<p>${fmt(l)}</p>`).join('')}
                     </div>
@@ -504,7 +504,7 @@ const Tpl = {
         const degHtml = `
             <div class="gtn-wrap">
                 <div class="accordion">
-                    <div class="accordion-header">Déguisements ${icons.chevronDown}</div>
+                    <div class="accordion-header">Déguisements ${icons.chevron}</div>
                     <div class="accordion-body">
                         ${degIntro ? `<p class="deg-intro-text">${fmt(degIntro)}</p>` : ''}
                     </div>
@@ -515,7 +515,7 @@ const Tpl = {
         const photosHtml = `
             <div class="gtn-wrap">
                 <div class="accordion">
-                    <div class="accordion-header">Photos ${icons.chevronDown}</div>
+                    <div class="accordion-header">Photos ${icons.chevron}</div>
                     <div class="accordion-body">
                         ${photosIntro ? `<p class="deg-intro-text">${fmt(photosIntro)}</p>` : ''}
                         <a class="deg-drive-link" href="${driveUrl}" target="_blank" rel="noopener">
@@ -599,7 +599,7 @@ const Tpl = {
         const gtnHtml = gtnContent ? `
             <div class="gtn-wrap">
                 <div class="accordion">
-                    <div class="accordion-header"><span class="accordion-warn">${icons.warn}</span>À savoir ${icons.chevronDown}</div>
+                    <div class="accordion-header"><span class="accordion-warn">${icons.warn}</span>À savoir ${icons.chevron}</div>
                     <div class="accordion-body">${gtnContent}</div>
                 </div>
             </div>` : '';
@@ -723,7 +723,7 @@ const Tpl = {
         const gtnHtml = gtnContent ? `
             <div class="gtn-wrap">
                 <div class="accordion">
-                    <div class="accordion-header">Infos pratiques ${icons.chevronDown}</div>
+                    <div class="accordion-header">Infos pratiques ${icons.chevron}</div>
                     <div class="accordion-body">${gtnContent}</div>
                 </div>
             </div>` : '';
@@ -761,7 +761,7 @@ const Tpl = {
         const gtnHtml = gtnContent ? `
             <div class="gtn-wrap">
                 <div class="accordion">
-                    <div class="accordion-header"><span class="accordion-warn">${icons.warn}</span>À savoir ${icons.chevronDown}</div>
+                    <div class="accordion-header"><span class="accordion-warn">${icons.warn}</span>À savoir ${icons.chevron}</div>
                     <div class="accordion-body">${gtnContent}</div>
                 </div>
             </div>` : '';
