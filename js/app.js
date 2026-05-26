@@ -27,6 +27,7 @@ const App = {
         });
 
         this._loadTextes();
+        this._preloadAtLogin();
     },
 
     async _loadTextes() {
@@ -67,6 +68,13 @@ const App = {
         const canScroll  = main.scrollHeight > main.clientHeight + 40;
         document.getElementById('fab-down').classList.toggle('hidden', scrolled || !canScroll);
         document.getElementById('fab-up').classList.toggle('hidden', !scrolled);
+    },
+
+    _preloadAtLogin() {
+        const tabs = ['textes', 'lineup', 'repas', 'shifts_cuisine', 'shifts_bar',
+                      'plan_dodo', 'covoit_voitures', 'covoit_passagers', 'covoit_train',
+                      'montage_tasks', 'inventaire', 'todo'];
+        tabs.forEach(tab => Api.get(tab).catch(() => {}));
     },
 
     _prefetchAll(role) {
@@ -448,7 +456,7 @@ const Tpl = {
     loading: () => `
         <div class="loading-state">
             <div class="spinner"></div>
-            <span>Chargement…</span>
+            <span>ça arrive...</span>
         </div>`,
 
     home: () => {
