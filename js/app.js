@@ -54,7 +54,7 @@ const App = {
             ? ['montage_tasks', 'inventaire', 'lineup', 'repas', 'shifts_cuisine',
                'shifts_bar', 'plan_dodo', 'covoit_voitures', 'covoit_passagers', 'covoit_train', 'todo']
             : ['lineup', 'repas', 'shifts_cuisine', 'shifts_bar',
-               'covoit_voitures', 'covoit_passagers', 'covoit_train', 'plan_dodo', 'deguisements_images'];
+               'covoit_voitures', 'covoit_passagers', 'covoit_train', 'plan_dodo'];
         tabs.forEach(tab => Api.get(tab).catch(() => {}));
     },
 
@@ -138,8 +138,7 @@ const App = {
     // ── Festivalier views ─────────────────────────────────────────────────────
 
     async _renderHome(main) {
-        const degImages = await Api.get('deguisements_images').catch(() => []);
-        main.innerHTML = Tpl.home(degImages);
+        main.innerHTML = Tpl.home();
         this._bindAccordions(main);
     },
 
@@ -429,7 +428,7 @@ const Tpl = {
             <span>Chargement…</span>
         </div>`,
 
-    home: (degImages) => {
+    home: () => {
         const cards = [
             { nav: 'programme',  label: 'Programme',  imgKey: 'accueil_programme_image'  },
             { nav: 'catering',   label: 'Catering',   imgKey: 'accueil_catering_image'   },
@@ -470,21 +469,12 @@ const Tpl = {
         const driveUrl = App.t('deguisements_drive_url',
             'https://drive.google.com/drive/folders/1TQeQmUi_dqUGA__mUK0F-CUq2ApxHiGW?usp=sharing'
         );
-        const degGallery = degImages.length
-            ? `<div class="deg-gallery">
-                   ${degImages.map(img =>
-                       `<img src="${img.image_url}" alt="" onerror="this.style.display='none'">`
-                   ).join('')}
-               </div>`
-            : '<div class="empty-state" style="padding:20px 0">Images à venir</div>';
-
         const degHtml = `
             <div class="gtn-wrap">
                 <div class="accordion">
                     <div class="accordion-header">Déguisements ${icons.chevronDown}</div>
                     <div class="accordion-body">
                         ${degIntro ? `<p class="deg-intro-text">${fmt(degIntro)}</p>` : ''}
-                        ${degGallery}
                     </div>
                 </div>
             </div>`;
@@ -722,6 +712,7 @@ const Tpl = {
         const gite21erUrl = App.t('plan_dodo_schema_gite2_1er', '');
         const interieur  = App.t('infos_items_interieur', '');
         const tente      = App.t('infos_items_tente', '');
+        const commun     = App.t('infos_items_commun', '');
 
         const gtnContent = [
             interieur ? `
@@ -730,6 +721,9 @@ const Tpl = {
             tente ? `
                 <p><strong>Si tu dors en tente</strong></p>
                 <ul>${tente.split('\n').map(i => `<li>${fmt(i)}</li>`).join('')}</ul>` : '',
+            commun ? `
+                <p><strong>Pour tout le monde</strong></p>
+                <ul>${commun.split('\n').map(i => `<li>${fmt(i)}</li>`).join('')}</ul>` : '',
         ].filter(Boolean).join('');
 
         const gtnHtml = gtnContent ? `
