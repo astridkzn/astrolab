@@ -300,6 +300,7 @@ const App = {
                 container.querySelectorAll('.day-tab').forEach(t => t.classList.remove('active'));
                 container.querySelectorAll('.day-panel').forEach(p => p.classList.add('hidden'));
                 tab.classList.add('active');
+                tab.classList.remove('day-tab--pulse');
                 const panel = container.querySelector(`.day-panel[data-panel="${tab.dataset.panel}"]`);
                 if (panel) panel.classList.remove('hidden');
             });
@@ -627,7 +628,7 @@ const Tpl = {
             ${gtnHtml}
             <div class="day-tabs">
                 <button class="day-tab active" data-panel="menu">Menu</button>
-                <button class="day-tab" data-panel="shifts">Shifts</button>
+                <button class="day-tab day-tab--pulse" data-panel="shifts">Shifts</button>
             </div>
             <div class="day-panel" data-panel="menu">${menuHtml}</div>
             <div class="day-panel hidden" data-panel="shifts">${Tpl.shifts(cuisine, bar)}</div>`;

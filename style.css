@@ -385,6 +385,15 @@ button { font-family: var(--font-b); cursor: pointer; }
 .day-tab.active { color: var(--accent); }
 .day-tab.active::after { transform: scaleX(1); }
 
+@keyframes tab-pulse {
+    0%, 100% { transform: scale(1);    color: var(--text-2); }
+    50%       { transform: scale(1.08); color: var(--accent); }
+}
+
+.day-tab--pulse {
+    animation: tab-pulse 1s ease-in-out 1s 3;
+}
+
 .timeline {
     padding: 14px 16px;
     display: flex;
