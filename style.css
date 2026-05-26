@@ -476,6 +476,7 @@ button { font-family: var(--font-b); cursor: pointer; }
     background: var(--surface-2);
     border: 1px solid var(--border-2);
     color: var(--accent);
+    stroke: var(--accent);
 }
 
 
@@ -608,12 +609,37 @@ button { font-family: var(--font-b); cursor: pointer; }
 .accordion-header svg {
     flex-shrink: 0;
     color: var(--accent);
+    stroke: var(--accent);
     width: 22px;
     height: 22px;
     transition: transform 0.2s;
 }
 
-.accordion.open .accordion-header svg { transform: rotate(180deg); }
+.accordion-warn {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 7px;
+    color: var(--accent);
+    vertical-align: middle;
+}
+
+.accordion-warn svg {
+    width: 16px;
+    height: 16px;
+    stroke: var(--accent);
+    flex-shrink: 0;
+}
+
+@keyframes nudge-down {
+    0%, 55%, 100% { transform: translateY(0); }
+    25% { transform: translateY(5px); }
+}
+
+.accordion:not(.open) .accordion-header svg:last-child {
+    animation: nudge-down 1.8s ease-in-out 0.6s 3;
+}
+
+.accordion.open .accordion-header svg:last-child { transform: rotate(180deg); }
 
 .accordion-body {
     display: none;
@@ -1148,6 +1174,7 @@ button { font-family: var(--font-b); cursor: pointer; }
 
 .task-chevron {
     color: var(--accent);
+    stroke: var(--accent);
     transition: transform 0.2s;
     display: flex;
 }

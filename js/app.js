@@ -481,7 +481,7 @@ const Tpl = {
         const gtnHtml = aSavoir ? `
             <div class="gtn-wrap">
                 <div class="accordion">
-                    <div class="accordion-header">À savoir ${icons.chevronDown}</div>
+                    <div class="accordion-header"><span class="accordion-warn">${icons.warn}</span>À savoir ${icons.chevronDown}</div>
                     <div class="accordion-body">
                         ${aSavoir.split('\n').map(l => `<p>${fmt(l)}</p>`).join('')}
                     </div>
@@ -590,7 +590,7 @@ const Tpl = {
         const gtnHtml = gtnContent ? `
             <div class="gtn-wrap">
                 <div class="accordion">
-                    <div class="accordion-header">À savoir ${icons.chevronDown}</div>
+                    <div class="accordion-header"><span class="accordion-warn">${icons.warn}</span>À savoir ${icons.chevronDown}</div>
                     <div class="accordion-body">${gtnContent}</div>
                 </div>
             </div>` : '';
@@ -752,7 +752,7 @@ const Tpl = {
         const gtnHtml = gtnContent ? `
             <div class="gtn-wrap">
                 <div class="accordion">
-                    <div class="accordion-header">À savoir ${icons.chevronDown}</div>
+                    <div class="accordion-header"><span class="accordion-warn">${icons.warn}</span>À savoir ${icons.chevronDown}</div>
                     <div class="accordion-body">${gtnContent}</div>
                 </div>
             </div>` : '';
@@ -882,6 +882,7 @@ const icons = {
     photo:       `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/></svg>`,
     chevron:     `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9,18 15,12 9,6"/></svg>`,
     chevronDown: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,9 12,15 18,9"/></svg>`,
+    warn:        `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
     star:        `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>`,
     info:        `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="8" stroke-width="2.5"/><line x1="12" y1="12" x2="12" y2="16"/></svg>`,
     car:         `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="9" width="22" height="9" rx="2"/><path d="M5 9V7a2 2 0 012-2h10a2 2 0 012 2v2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>`,
